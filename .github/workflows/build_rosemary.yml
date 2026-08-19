@@ -1,0 +1,73 @@
+name: Build Rosemary Kernel - Rambondanp
+
+on:
+  workflow_dispatch:
+    inputs:
+      BRANCH:
+        description: 'Branch Kernel Source'
+        required: true
+        default: 'main'
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Kernel Source
+        uses: actions/checkout@v4
+        with:
+          repository: ramabondanp/kernel_xiaomi_rosemary
+          ref: ${{ inputs.BRANCH }}
+          submodules: true
+
+      - name: Maximize Build Space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 8192
+          swap-size-mb: 4096
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg gperf imagemagick lib32ncurses5-dev lib32z1-dev libelf-dev liblz4-tool libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc yasm zip zlib1g-dev python3 make clang lld
+
+      - name: Setup Clang and GCC Toolchains
+        run: |
+          git clone --depth=1 https://github.com/kutuyx/aarch64-linux-android-9.0.git toolchain
+          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_clang_host_linux-x86_clang-r416183b prebuilts-clang || git clone --depth=1 https://gitlab.com/ThankYouMario/android_prebuilts_clang_host_linux-x86_clang-r383902.git prebuilts-clang
+
+      - name: Setup Environment Variables
+        run: |
+          echo "KBUILD_BUILD_USER=adito" >> $GITHUB_ENV
+          echo "KBUILD_BUILD_HOST=nebolusverse" >> $GITHUB_ENV
+          echo "ARCH=arm64" >> $GITHUB_ENV
+          echo "SUBARCH=arm64" >> $GITHUB_ENV
+          echo "PATH=$PWD/toolchain/bin:$PWD/prebuilts-clang/bin:$PATH" >> $GITHUB_ENV
+
+      - name: Build Kernel Rosemary
+        run: |
+          export PATH="$PWD/toolchain/bin:$PWD/prebuilts-clang/bin:$PATH"
+          
+          make O=out clean
+          make O=out mrproper
+          
+          make O=out ARCH=arm64 rosemary_defconfig
+          
+          make -j$(nproc --all) O=out \
+            ARCH=arm64 \
+            CC=clang \
+            CLANG_TRIPLE=aarch64-linux-gnu- \
+            CROSS_COMPILE=aarch64-linux-android-
+
+      - name: Upload Kernel Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rosemary-Kernel-Output
+          path: |
+            out/arch/arm64/boot/Image.gz-dtb
+            out/arch/arm64/boot/dtbo.img
+            out/arch/arm64/boot/dtb.img

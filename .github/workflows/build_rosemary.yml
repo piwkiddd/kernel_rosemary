@@ -30,12 +30,12 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg gperf imagemagick lib32ncurses5-dev lib32z1-dev libelf-dev liblz4-tool libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc yasm zip zlib1g-dev python3 make clang lld
+          sudo apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg gperf imagemagick lib32ncurses5-dev lib32z1-dev libelf-dev liblz4-tool libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc yasm zip zlib1g-dev python3 make clang lld binutils-aarch64-linux-gnu
 
       - name: Setup Toolchains
         run: |
-          sudo apt-get install -y clang lld llvm
-          echo "Using system clang/lld for build stability."
+          git clone --depth=1 https://github.com/kutuyx/aarch64-linux-android-9.0.git toolchain
+          echo "$PWD/toolchain/bin" >> $GITHUB_PATH
 
       - name: Build Kernel
         run: |
@@ -43,6 +43,7 @@ jobs:
           export KBUILD_BUILD_HOST=nebolusverse
           export ARCH=arm64
           export SUBARCH=arm64
+          export PATH="$PWD/toolchain/bin:$PATH"
           
           cd kernel
           make O=out clean
@@ -52,8 +53,8 @@ jobs:
           make -j$(nproc --all) O=out \
             ARCH=arm64 \
             CC=clang \
-            CLANG_TRIPLE=aarch64-linux-gnu- \
-            CROSS_COMPILE=aarch64-linux-android-
+            CROSS_COMPILE=aarch64-linux-android- \
+            CROSS_COMPILE_ARM32=arm-linux-androideabi-
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4

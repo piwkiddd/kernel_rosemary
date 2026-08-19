@@ -25,7 +25,6 @@ jobs:
 
       - name: Clone Kernel Source
         run: |
-          git config --global advice.detachedHead false
           git clone --depth=1 https://github.com/ramabondanp/kernel_xiaomi_rosemary.git -b ${{ inputs.BRANCH }} kernel
 
       - name: Install Dependencies
@@ -35,12 +34,11 @@ jobs:
 
       - name: Setup Toolchains
         run: |
-          git clone --depth=1 https://github.com/kutuyx/aarch64-linux-android-9.0.git toolchain
-          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_clang_host_linux-x86_clang-r416183b prebuilts-clang
+          sudo apt-get install -y clang lld llvm
+          echo "Using system clang/lld for build stability."
 
       - name: Build Kernel
         run: |
-          export PATH="$PWD/toolchain/bin:$PWD/prebuilts-clang/bin:$PATH"
           export KBUILD_BUILD_USER=adito
           export KBUILD_BUILD_HOST=nebolusverse
           export ARCH=arm64

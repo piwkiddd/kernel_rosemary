@@ -6,7 +6,7 @@ on:
       BRANCH:
         description: 'Branch Kernel Source'
         required: true
-        default: 'master'
+        default: 'R'
         type: string
 
 jobs:

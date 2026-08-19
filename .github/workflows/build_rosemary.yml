@@ -6,20 +6,13 @@ on:
       BRANCH:
         description: 'Branch Kernel Source'
         required: true
-        default: 'main'
+        default: 'master'
         type: string
 
 jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout Kernel Source
-        uses: actions/checkout@v4
-        with:
-          repository: ramabondanp/kernel_xiaomi_rosemary
-          ref: ${{ inputs.BRANCH }}
-          submodules: true
-
       - name: Maximize Build Space
         uses: easimon/maximize-build-space@master
         with:
@@ -29,6 +22,11 @@ jobs:
           remove-android: 'true'
           remove-haskell: 'true'
           remove-codeql: 'true'
+
+      - name: Clone Kernel Source Manually
+        run: |
+          git clone --depth=1 https://github.com/ramabondanp/kernel_xiaomi_rosemary.git -b ${{ inputs.BRANCH }} kernel
+          cd kernel
 
       - name: Install Dependencies
         run: |
@@ -50,7 +48,8 @@ jobs:
 
       - name: Build Kernel Rosemary
         run: |
-          export PATH="$PWD/toolchain/bin:$PWD/prebuilts-clang/bin:$PATH"
+          cd kernel
+          export PATH="$PWD/../toolchain/bin:$PWD/../prebuilts-clang/bin:$PATH"
           
           make O=out clean
           make O=out mrproper
@@ -68,6 +67,6 @@ jobs:
         with:
           name: Rosemary-Kernel-Output
           path: |
-            out/arch/arm64/boot/Image.gz-dtb
-            out/arch/arm64/boot/dtbo.img
-            out/arch/arm64/boot/dtb.img
+            kernel/out/arch/arm64/boot/Image.gz-dtb
+            kernel/out/arch/arm64/boot/dtbo.img
+            kernel/out/arch/arm64/boot/dtb.img
